@@ -3,7 +3,13 @@ package com.fugui.learning;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class TheMaze {
 
@@ -119,25 +125,17 @@ public class TheMaze {
         }
     }
 
-    private Point getMinSteps(Point point) {
-        Point up = point.translate(-1, 0);
-        Point left = point.translate(0, -1);
-        Point down = point.translate(1, 0);
-        Point right = point.translate(0, 1);
+    private List<Point> getNextMoves(Point point) {
+        return Arrays.stream((new Point[] {
+            point.translate(-1, 0),
+            point.translate(0, -1),
+            point.translate(1, 0),
+            point.translate(0, 1)
+        })).filter(this::isValid).collect(Collectors.toList());
+    }
 
-        int min1 = Math.min(getMazeValue(up), getMazeValue(left));
-        int min2 = Math.min(getMazeValue(down), getMazeValue(right));
-        int min = Math.min(min1, min2);
-        if (min == getMazeValue(up)) {
-            return up;
-        }
-        if (min == getMazeValue(left)) {
-            return left;
-        }
-        if (min == getMazeValue(down)) {
-            return down;
-        }
-        return right;
+    private Point getMinSteps(Point point) {
+        return getNextMoves(point).stream().min(Comparator.comparing(this::getMazeValue)).get();
     }
 
     private void findGoal(Point from, Point target, int steps) {
@@ -149,18 +147,14 @@ public class TheMaze {
             return;
         }
 
-        steps++;
-        if (c <= steps) {
+        if (c <= (steps + 1)) {
             return;
         }
-        if (steps > 1) {
-            setMazeValue(from, steps);
+        if (steps > 0) {
+            setMazeValue(from, steps + 1);
         }
 
-        findGoal(from.translate(-1, 0), target, steps);
-        findGoal(from.translate(0, -1), target, steps);
-        findGoal(from.translate(1, 0), target, steps);
-        findGoal(from.translate(0, 1), target, steps);
+        getNextMoves(from).forEach(next -> findGoal(next, target, steps + 1));
     }
 
     private void setMazeValue(Point point, int steps) {
@@ -172,6 +166,10 @@ public class TheMaze {
             return 'Z';
         }
         return maze[point.line][point.column];
+    }
+
+    private boolean isValid(Point point) {
+        return !isOutWall(point);
     }
 
     private boolean isOutWall(Point point) {
